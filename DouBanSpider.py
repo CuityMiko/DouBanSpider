@@ -1,6 +1,8 @@
 import ssl
 import bs4
 import re
+import sys
+import requests
 
 from urllib import request, error
 
@@ -36,7 +38,38 @@ class DouBanSpider:
                 categroies.append(categroy.string)
         return categroies
     
+    #拿到每个标签的链接 
+    def getCategroyLink(self):
+        categroies = self.getCategroiesContent()
+        categroyLinks = []
+        for item in categroies:
+            link = "https://book.douban.com/tag/" + str(item)
+            categroyLinks.append(link)
+        return categroyLinks
 
+    def getBookInfo(self):
+        bookList = []
+        categroies = self.getCategroyLink()
+        link = categroies[0]
+        try:
+            response = requests.get(link)
+            soup = bs4.BeautifulSoup(response.text, 'lxml')
+            for book in soup.find_all("li", {"class": "subject-item"}):
+                bookSoup = bs4.BeautifulSoup(str(book), "lxml")
+                bookTitle = bookSoup.h2.a["title"]
+                bookAuthor = bookSoup.find("div", {"class": "pub"}).string
+                bookComment = bookSoup.find("span", {"class": "pl"}).string
+                bookContent = bookSoup.find("p").string
+                if bookTitle and bookAuthor and bookComment and bookContent:
+                    bookList.append([bookTitle.strip(), bookAuthor.strip(), bookComment.strip(), bookContent.strip()])
+            return bookList
+
+        except error.HTTPError as identifier:
+            print("errorCode: " + identifier.code + "errrorReason: " + identifier.reason)
+            return None
+
+    def saveBookInfo(self): 
+        
 
 douBanSpider = DouBanSpider()
-print(douBanSpider.getCategroiesContent())
+print(douBanSpider.getBookInfo())
