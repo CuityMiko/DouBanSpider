@@ -100,4 +100,4 @@ class DouBanSpider:
         self.getBookInfo(categroyLink)
 
 douBanSpider = DouBanSpider()
-print(douBanSpider.start())
+douBanSpider.start()
