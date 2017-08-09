@@ -1,8 +1,10 @@
 import ssl
 import bs4
 import re
-import sys
 import requests
+import csv
+import codecs
+import time
 
 from urllib import request, error
 
@@ -47,29 +49,55 @@ class DouBanSpider:
             categroyLinks.append(link)
         return categroyLinks
 
-    def getBookInfo(self):
-        bookList = []
-        categroies = self.getCategroyLink()
-        link = categroies[0]
+    def getBookInfo(self, categroyLinks):
+        self.setCsvTitle()
+        categroies = categroyLinks
         try:
-            response = requests.get(link)
-            soup = bs4.BeautifulSoup(response.text, 'lxml')
-            for book in soup.find_all("li", {"class": "subject-item"}):
-                bookSoup = bs4.BeautifulSoup(str(book), "lxml")
-                bookTitle = bookSoup.h2.a["title"]
-                bookAuthor = bookSoup.find("div", {"class": "pub"}).string
-                bookComment = bookSoup.find("span", {"class": "pl"}).string
-                bookContent = bookSoup.find("p").string
-                if bookTitle and bookAuthor and bookComment and bookContent:
-                    bookList.append([bookTitle.strip(), bookAuthor.strip(), bookComment.strip(), bookContent.strip()])
-            return bookList
+            for link in categroies:
+                print("正在爬取：" + link)
+                bookList = []
+                response = requests.get(link)
+                soup = bs4.BeautifulSoup(response.text, 'lxml')
+                bookCategroy = soup.h1.string
+                for book in soup.find_all("li", {"class": "subject-item"}):
+                    bookSoup = bs4.BeautifulSoup(str(book), "lxml")
+                    bookTitle = bookSoup.h2.a["title"]
+                    bookAuthor = bookSoup.find("div", {"class": "pub"})
+                    bookComment = bookSoup.find("span", {"class": "pl"})
+                    bookContent = bookSoup.li.p
+                    # print(bookContent)
+                    if bookTitle and bookAuthor and bookComment and bookContent:
+                        bookList.append([bookCategroy.strip(), bookTitle.strip(), bookAuthor.string.strip(), bookComment.string.strip(), bookContent.string.strip()])
+                self.saveBookInfo(bookList)
+                time.sleep(3)
+
+            print("爬取结束....")
 
         except error.HTTPError as identifier:
             print("errorCode: " + identifier.code + "errrorReason: " + identifier.reason)
             return None
 
-    def saveBookInfo(self): 
-        
+    def setCsvTitle(self):
+        csvFile = codecs.open("./test.csv", 'a', 'utf_8_sig')
+        try:
+            writer = csv.writer(csvFile)
+            writer.writerow(['图书分类', '图书名字', '图书信息', '图书评论数', '图书内容'])
+        finally:
+            csvFile.close()
+
+    def saveBookInfo(self, bookList):
+        bookList = bookList
+        csvFile = codecs.open("./test.csv", 'a', 'utf_8_sig')
+        try:
+            writer = csv.writer(csvFile)
+            for book in bookList:
+                writer.writerow(book)
+        finally:
+            csvFile.close()
+
+    def start(self):
+        categroyLink = self.getCategroyLink()
+        self.getBookInfo(categroyLink)
 
 douBanSpider = DouBanSpider()
-print(douBanSpider.getBookInfo())
+print(douBanSpider.start())
