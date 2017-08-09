@@ -28,9 +28,14 @@ class DouBanSpider:
         if not content:
             print("页面抓取失败...")
             return None
-        soup = bs4.BeautifulSoup(content)
-        for categroy in soup.find_all("table"):
-            print(categroy)
+        soup = bs4.BeautifulSoup(content, "lxml")
+        categroyMatch = re.compile(r"^/tag/*")
+        categroies = []
+        for categroy in soup.find_all("a", {"href": categroyMatch}):
+            if categroy:
+                categroies.append(categroy.string)
+        return categroies
+    
 
 
 douBanSpider = DouBanSpider()
